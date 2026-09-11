@@ -15,6 +15,7 @@ import database
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+DEFAULT_CHAT_ID = os.getenv("DEFAULT_CHAT_ID")
 
 
 async def start_bot_polling():
@@ -133,12 +134,13 @@ async def api_invoice_file_url(invoice_id: int):
 @app.post("/api/upload")
 async def api_upload(
     file: UploadFile = File(...),
-    chat_id: str = Form(...),
     vendor: str = Form("Pending Extraction"),
     amount: float = Form(0.0),
 ):
-    if not chat_id.strip():
-        return JSONResponse(content={"error": "Telegram User ID is required"}, status_code=400)
+    if not DEFAULT_CHAT_ID:
+        return JSONResponse(content={"error": "DEFAULT_CHAT_ID not configured on server"}, status_code=500)
+
+    chat_id = DEFAULT_CHAT_ID.strip()
 
     # Determine file type and Telegram endpoint
     is_photo = file.content_type and file.content_type.startswith("image/")
@@ -153,7 +155,7 @@ async def api_upload(
     # Send to Telegram
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/{telegram_endpoint}"
     files = {field_name: (file.filename, content, file.content_type or "application/octet-stream")}
-    data = {"chat_id": chat_id.strip()}
+    data = {"chat_id": chat_id}
 
     try:
         res = requests.post(url, data=data, files=files, timeout=30).json()
@@ -181,7 +183,7 @@ async def api_upload(
     # Save to database
     file_type = "photo" if is_photo else "document"
     database.save_invoice(
-        user_id=int(chat_id.strip()),
+        user_id=int(chat_id),
         file_id=file_id,
         file_type=file_type,
         vendor=vendor if vendor.strip() else "Pending Extraction",

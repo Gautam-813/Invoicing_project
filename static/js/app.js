@@ -1,4 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Tab Switching ---
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(tc => tc.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+
+            // Refresh invoices when switching to view tab
+            if (tab.dataset.tab === 'view') fetchInvoices();
+        });
+    });
+
+    // --- View Tab Logic ---
     const searchInput = document.getElementById('searchInput');
     const applyBtn = document.getElementById('applyFilters');
     const tableBody = document.getElementById('invoiceTableBody');
@@ -10,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let allInvoices = [];
 
-    // Filter mode radio buttons
     const filterRadios = document.querySelectorAll('input[name="filterMode"]');
     const dateFilters = document.getElementById('dateFilters');
     const specificDateGroup = document.getElementById('specificDateGroup');
@@ -27,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Fetch invoices
     async function fetchInvoices() {
         const mode = document.querySelector('input[name="filterMode"]:checked').value;
         const params = new URLSearchParams();
@@ -94,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('totalValue').textContent = `$${total.toFixed(2)}`;
     }
 
-    // Preview modal
     window.previewInvoice = async function(id) {
         const inv = allInvoices.find(i => i.id === id);
         if (!inv) return;
@@ -131,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Close modal
     closeModal.addEventListener('click', () => {
         modal.classList.remove('active');
         modalBody.innerHTML = '';
@@ -151,18 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Apply filters
     applyBtn.addEventListener('click', fetchInvoices);
 
-    // Search on enter
     searchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') fetchInvoices();
     });
 
-    // Initial load
-    fetchInvoices();
-
-    // --- Upload Logic ---
+    // --- Upload Tab Logic ---
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
     const uploadPreview = document.getElementById('uploadPreview');
@@ -172,16 +180,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeFile = document.getElementById('removeFile');
     const uploadBtn = document.getElementById('uploadBtn');
     const uploadStatus = document.getElementById('uploadStatus');
-    const chatIdInput = document.getElementById('chatIdInput');
     const vendorInput = document.getElementById('vendorInput');
     const amountInput = document.getElementById('amountInput');
 
     let selectedFile = null;
 
-    // Click to browse
     uploadArea.addEventListener('click', () => fileInput.click());
 
-    // Drag & drop
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.classList.add('dragover');
@@ -198,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (file) handleFileSelect(file);
     });
 
-    // File input change
     fileInput.addEventListener('change', () => {
         if (fileInput.files[0]) handleFileSelect(fileInput.files[0]);
     });
@@ -220,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadStatus.textContent = '';
         uploadStatus.className = 'upload-status';
 
-        // Show preview
         uploadArea.style.display = 'none';
         uploadPreview.style.display = 'flex';
         previewName.textContent = file.name;
@@ -231,13 +234,12 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (e) => { previewThumb.src = e.target.result; };
             reader.readAsDataURL(file);
         } else {
-            previewThumb.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239aa0a6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v7h7v9H6z"/></svg>';
+            previewThumb.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239aa0a6'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v7h7v9H6z'/%3E%3C/svg%3E";
         }
 
         uploadBtn.disabled = false;
     }
 
-    // Remove file
     removeFile.addEventListener('click', () => {
         selectedFile = null;
         fileInput.value = '';
@@ -247,14 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadStatus.textContent = '';
     });
 
-    // Upload to Telegram
     uploadBtn.addEventListener('click', async () => {
-        const chatId = chatIdInput.value.trim();
-        if (!chatId) {
-            uploadStatus.textContent = 'Please enter your Telegram User ID.';
-            uploadStatus.className = 'upload-status error';
-            return;
-        }
         if (!selectedFile) {
             uploadStatus.textContent = 'Please select a file.';
             uploadStatus.className = 'upload-status error';
@@ -267,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const formData = new FormData();
         formData.append('file', selectedFile);
-        formData.append('chat_id', chatId);
         formData.append('vendor', vendorInput.value.trim() || 'Pending Extraction');
         formData.append('amount', parseFloat(amountInput.value) || 0.0);
 
@@ -284,8 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadPreview.style.display = 'none';
                 vendorInput.value = '';
                 amountInput.value = '';
-                // Refresh table
-                fetchInvoices();
             } else {
                 uploadStatus.textContent = data.error || 'Upload failed.';
                 uploadStatus.className = 'upload-status error';

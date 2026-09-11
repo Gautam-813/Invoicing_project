@@ -21,120 +21,130 @@
     </nav>
 
     <main class="container">
-        <div class="header">
-            <h2>Invoice Dashboard</h2>
-            <p class="subtitle">View and manage invoices uploaded via Telegram Bot</p>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="upload">Upload</button>
+            <button class="tab" data-tab="view">View Invoices</button>
         </div>
 
-        <!-- Stats -->
-        <div class="stats-bar">
-            <div class="stat-card">
-                <span class="stat-label">Total Invoices</span>
-                <span class="stat-value" id="totalCount">0</span>
+        <!-- UPLOAD TAB -->
+        <div class="tab-content active" id="tab-upload">
+            <div class="header">
+                <h2>Upload Invoice</h2>
+                <p class="subtitle">Send invoices directly to Telegram — they're stored there automatically.</p>
             </div>
-            <div class="stat-card">
-                <span class="stat-label">This Month</span>
-                <span class="stat-value" id="monthCount">0</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Total Value</span>
-                <span class="stat-value" id="totalValue">$0.00</span>
-            </div>
-        </div>
 
-        <!-- Upload Section -->
-        <div class="upload-panel">
-            <h3>Upload Invoice to Telegram</h3>
-            <p class="upload-hint">Files are sent directly to Telegram and stored there.</p>
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">&#128206;</div>
-                <p>Drag & drop a file here or <label for="fileInput" class="upload-link">browse</label></p>
-                <p class="upload-types">Supports: JPG, PNG, PDF</p>
-                <input type="file" id="fileInput" accept="image/*,.pdf" hidden>
-            </div>
-            <div class="upload-preview" id="uploadPreview" style="display:none;">
-                <img id="previewThumb" src="" alt="Preview">
-                <div class="upload-file-info">
-                    <span id="previewName"></span>
-                    <span id="previewSize"></span>
+            <div class="upload-panel">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">&#128206;</div>
+                    <p>Drag & drop a file here or <label for="fileInput" class="upload-link">browse</label></p>
+                    <p class="upload-types">Supports: JPG, PNG, PDF</p>
+                    <input type="file" id="fileInput" accept="image/*,.pdf" hidden>
                 </div>
-                <button class="btn btn-sm btn-outline" id="removeFile">Remove</button>
-            </div>
-            <div class="upload-meta">
-                <div class="filter-group">
-                    <label>Your Telegram User ID</label>
-                    <input type="text" id="chatIdInput" placeholder="e.g. 8836757202">
+                <div class="upload-preview" id="uploadPreview" style="display:none;">
+                    <img id="previewThumb" src="" alt="Preview">
+                    <div class="upload-file-info">
+                        <span id="previewName"></span>
+                        <span id="previewSize"></span>
+                    </div>
+                    <button class="btn btn-sm btn-outline" id="removeFile">Remove</button>
                 </div>
-                <div class="filter-group">
-                    <label>Vendor (optional)</label>
-                    <input type="text" id="vendorInput" placeholder="e.g. Amazon">
-                </div>
-                <div class="filter-group">
-                    <label>Amount (optional)</label>
-                    <input type="number" id="amountInput" placeholder="0.00" step="0.01" min="0">
-                </div>
-            </div>
-            <button class="btn btn-primary" id="uploadBtn" disabled>Upload to Telegram</button>
-            <div class="upload-status" id="uploadStatus"></div>
-        </div>
-
-        <!-- Filters -->
-        <div class="filters-panel">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label>Search</label>
-                    <input type="text" id="searchInput" placeholder="Search by vendor or ID...">
-                </div>
-                <div class="filter-group">
-                    <label>Filter Mode</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="filterMode" value="all" checked> All Time
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="filterMode" value="specific"> Specific Date
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="filterMode" value="range"> Date Range
-                        </label>
+                <div class="upload-meta">
+                    <div class="filter-group">
+                        <label>Vendor (optional)</label>
+                        <input type="text" id="vendorInput" placeholder="e.g. Amazon">
+                    </div>
+                    <div class="filter-group">
+                        <label>Amount (optional)</label>
+                        <input type="number" id="amountInput" placeholder="0.00" step="0.01" min="0">
                     </div>
                 </div>
+                <button class="btn btn-primary" id="uploadBtn" disabled>Upload to Telegram</button>
+                <div class="upload-status" id="uploadStatus"></div>
             </div>
-            <div class="filter-row" id="dateFilters" style="display: none;">
-                <div class="filter-group" id="specificDateGroup" style="display: none;">
-                    <label>Date</label>
-                    <input type="date" id="specificDate">
-                </div>
-                <div class="filter-group" id="startDateGroup" style="display: none;">
-                    <label>From</label>
-                    <input type="date" id="startDate">
-                </div>
-                <div class="filter-group" id="endDateGroup" style="display: none;">
-                    <label>To</label>
-                    <input type="date" id="endDate">
-                </div>
-            </div>
-            <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
         </div>
 
-        <!-- Table -->
-        <div class="table-container">
-            <table class="invoice-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>User ID</th>
-                        <th>Type</th>
-                        <th>Vendor</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="invoiceTableBody">
-                    <tr><td colspan="7" class="empty-state">Loading invoices...</td></tr>
-                </tbody>
-            </table>
+        <!-- VIEW TAB -->
+        <div class="tab-content" id="tab-view">
+            <div class="header">
+                <h2>Invoice Dashboard</h2>
+                <p class="subtitle">View and manage all stored invoices.</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <span class="stat-label">Total Invoices</span>
+                    <span class="stat-value" id="totalCount">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">This Month</span>
+                    <span class="stat-value" id="monthCount">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Total Value</span>
+                    <span class="stat-value" id="totalValue">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-panel">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Search</label>
+                        <input type="text" id="searchInput" placeholder="Search by vendor or ID...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Filter Mode</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="filterMode" value="all" checked> All Time
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="filterMode" value="specific"> Specific Date
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="filterMode" value="range"> Date Range
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-row" id="dateFilters" style="display: none;">
+                    <div class="filter-group" id="specificDateGroup" style="display: none;">
+                        <label>Date</label>
+                        <input type="date" id="specificDate">
+                    </div>
+                    <div class="filter-group" id="startDateGroup" style="display: none;">
+                        <label>From</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    <div class="filter-group" id="endDateGroup" style="display: none;">
+                        <label>To</label>
+                        <input type="date" id="endDate">
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User ID</th>
+                            <th>Type</th>
+                            <th>Vendor</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceTableBody">
+                        <tr><td colspan="7" class="empty-state">Loading invoices...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 
