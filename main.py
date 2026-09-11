@@ -1,32 +1,54 @@
 import os
-import threading
-from datetime import datetime, date
+import asyncio
+from datetime import datetime
 from contextlib import asynccontextmanager
 
 import requests
 from fastapi import FastAPI, Request, Query
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
 import database
-import bot
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 
+async def start_bot_polling():
+    """Start the Telegram bot using async polling (runs alongside FastAPI)."""
+    from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
+
+    import bot as bot_module
+
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    application.add_handler(CommandHandler("start", bot_module.start))
+    application.add_handler(CommandHandler("list", bot_module.list_invoices))
+    application.add_handler(CommandHandler("get", bot_module.get_invoice))
+    application.add_handler(
+        MessageHandler(filters.PHOTO | filters.Document.ALL, bot_module.handle_document_or_photo)
+    )
+
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+    print("Bot polling started.")
+
+    # Keep running until shutdown
+    await asyncio.Event().wait()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: init DB + start bot in background
     database.init_db()
-    bot_thread = threading.Thread(target=bot.run_bot, daemon=True)
-    bot_thread.start()
-    print("Bot started in background thread.")
+
+    bot_task = asyncio.create_task(start_bot_polling())
+    print("Bot task created.")
     yield
-    # Shutdown (nothing needed)
+    bot_task.cancel()
 
 
 app = FastAPI(title="Invoice Vault", lifespan=lifespan)
@@ -35,9 +57,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def dashboard(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    return templates.TemplateResponse(request, "dashboard.html")
 
 
 @app.get("/health")
@@ -95,7 +117,7 @@ async def api_invoice_file_url(invoice_id: int):
     if not target:
         return JSONResponse(content={"error": "Invoice not found"}, status_code=404)
 
-    file_id = target[3] if len(target) > 3 else None
+    file_id = target[2] if len(target) > 2 else None
     if not file_id:
         return JSONResponse(content={"error": "No file_id"}, status_code=404)
 
