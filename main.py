@@ -4,7 +4,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 
 import requests
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Request, Query, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -128,3 +128,68 @@ async def api_invoice_file_url(invoice_id: int):
         return JSONResponse(content={"url": url})
 
     return JSONResponse(content={"error": "Failed to get file from Telegram"}, status_code=500)
+
+
+@app.post("/api/upload")
+async def api_upload(
+    file: UploadFile = File(...),
+    chat_id: str = Form(...),
+    vendor: str = Form("Pending Extraction"),
+    amount: float = Form(0.0),
+):
+    if not chat_id.strip():
+        return JSONResponse(content={"error": "Telegram User ID is required"}, status_code=400)
+
+    # Determine file type and Telegram endpoint
+    is_photo = file.content_type and file.content_type.startswith("image/")
+    telegram_endpoint = "sendPhoto" if is_photo else "sendDocument"
+    field_name = "photo" if is_photo else "document"
+
+    # Read file content
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        return JSONResponse(content={"error": "File too large (max 10MB)"}, status_code=400)
+
+    # Send to Telegram
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/{telegram_endpoint}"
+    files = {field_name: (file.filename, content, file.content_type or "application/octet-stream")}
+    data = {"chat_id": chat_id.strip()}
+
+    try:
+        res = requests.post(url, data=data, files=files, timeout=30).json()
+    except Exception as e:
+        return JSONResponse(content={"error": f"Telegram API error: {str(e)}"}, status_code=500)
+
+    if not res.get("ok"):
+        error_msg = res.get("description", "Unknown error")
+        return JSONResponse(content={"error": f"Telegram rejected: {error_msg}"}, status_code=400)
+
+    # Extract file_id from Telegram response
+    msg = res.get("result", {})
+    file_id = None
+    if is_photo:
+        photos = msg.get("photo", [])
+        if photos:
+            file_id = photos[-1].get("file_id")
+    else:
+        doc = msg.get("document", {})
+        file_id = doc.get("file_id")
+
+    if not file_id:
+        return JSONResponse(content={"error": "Could not extract file_id from Telegram"}, status_code=500)
+
+    # Save to database
+    file_type = "photo" if is_photo else "document"
+    database.save_invoice(
+        user_id=int(chat_id.strip()),
+        file_id=file_id,
+        file_type=file_type,
+        vendor=vendor if vendor.strip() else "Pending Extraction",
+        amount=amount if amount > 0 else 0.0,
+    )
+
+    return JSONResponse(content={
+        "success": True,
+        "file_id": file_id,
+        "file_type": file_type,
+    })

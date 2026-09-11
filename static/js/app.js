@@ -161,4 +161,140 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     fetchInvoices();
+
+    // --- Upload Logic ---
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadPreview = document.getElementById('uploadPreview');
+    const previewThumb = document.getElementById('previewThumb');
+    const previewName = document.getElementById('previewName');
+    const previewSize = document.getElementById('previewSize');
+    const removeFile = document.getElementById('removeFile');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const chatIdInput = document.getElementById('chatIdInput');
+    const vendorInput = document.getElementById('vendorInput');
+    const amountInput = document.getElementById('amountInput');
+
+    let selectedFile = null;
+
+    // Click to browse
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    // Drag & drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) handleFileSelect(file);
+    });
+
+    // File input change
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files[0]) handleFileSelect(fileInput.files[0]);
+    });
+
+    function handleFileSelect(file) {
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!validTypes.includes(file.type)) {
+            uploadStatus.textContent = 'Invalid file type. Use JPG, PNG, or PDF.';
+            uploadStatus.className = 'upload-status error';
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            uploadStatus.textContent = 'File too large. Maximum 10MB.';
+            uploadStatus.className = 'upload-status error';
+            return;
+        }
+
+        selectedFile = file;
+        uploadStatus.textContent = '';
+        uploadStatus.className = 'upload-status';
+
+        // Show preview
+        uploadArea.style.display = 'none';
+        uploadPreview.style.display = 'flex';
+        previewName.textContent = file.name;
+        previewSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => { previewThumb.src = e.target.result; };
+            reader.readAsDataURL(file);
+        } else {
+            previewThumb.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239aa0a6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h6v7h7v9H6z"/></svg>';
+        }
+
+        uploadBtn.disabled = false;
+    }
+
+    // Remove file
+    removeFile.addEventListener('click', () => {
+        selectedFile = null;
+        fileInput.value = '';
+        uploadArea.style.display = '';
+        uploadPreview.style.display = 'none';
+        uploadBtn.disabled = true;
+        uploadStatus.textContent = '';
+    });
+
+    // Upload to Telegram
+    uploadBtn.addEventListener('click', async () => {
+        const chatId = chatIdInput.value.trim();
+        if (!chatId) {
+            uploadStatus.textContent = 'Please enter your Telegram User ID.';
+            uploadStatus.className = 'upload-status error';
+            return;
+        }
+        if (!selectedFile) {
+            uploadStatus.textContent = 'Please select a file.';
+            uploadStatus.className = 'upload-status error';
+            return;
+        }
+
+        uploadBtn.disabled = true;
+        uploadStatus.textContent = 'Uploading to Telegram...';
+        uploadStatus.className = 'upload-status loading';
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('chat_id', chatId);
+        formData.append('vendor', vendorInput.value.trim() || 'Pending Extraction');
+        formData.append('amount', parseFloat(amountInput.value) || 0.0);
+
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if (data.success) {
+                uploadStatus.textContent = 'Invoice uploaded to Telegram successfully!';
+                uploadStatus.className = 'upload-status success';
+                selectedFile = null;
+                fileInput.value = '';
+                uploadArea.style.display = '';
+                uploadPreview.style.display = 'none';
+                vendorInput.value = '';
+                amountInput.value = '';
+                // Refresh table
+                fetchInvoices();
+            } else {
+                uploadStatus.textContent = data.error || 'Upload failed.';
+                uploadStatus.className = 'upload-status error';
+                uploadBtn.disabled = false;
+            }
+        } catch (err) {
+            uploadStatus.textContent = 'Network error. Try again.';
+            uploadStatus.className = 'upload-status error';
+            uploadBtn.disabled = false;
+        }
+    });
 });
