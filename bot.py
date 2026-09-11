@@ -66,18 +66,21 @@ async def handle_document_or_photo(update: Update, context: ContextTypes.DEFAULT
 async def list_invoices(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     invoices = database.get_user_invoices(user_id)
-
+    
     if not invoices:
-        await update.message.reply_text("No invoices found. Send me an image or PDF to save one!")
+        await update.message.reply_text("No invoices found.")
         return
 
-    msg = "📋 *Your Saved Invoices:*\n\n"
+    msg = "🧾 *Your Saved Invoices:*\n\n"
     for inv in invoices:
         inv_id, file_id, file_type, vendor, amount, upload_date = inv
-        msg += f"• *ID {inv_id}* | {upload_date[:10]} | Type: {file_type} -> Use `/get {inv_id}`\n"
+        
+        # Safely format datetime object or string
+        date_str = upload_date.strftime("%Y-%m-%d") if hasattr(upload_date, 'strftime') else str(upload_date)[:10]
+        
+        msg += f"• *ID {inv_id}* | {date_str} | Type: {file_type} -> Use `/get {inv_id}`\n"
 
     await update.message.reply_text(msg, parse_mode="Markdown")
-
 async def get_invoice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
