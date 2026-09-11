@@ -1,6 +1,5 @@
 .env
 __pycache__/
 *.db
-
-
-# git remote add origin https://github.com/Gautam-813/Invoicing_project.git
+venv/
+*.pyc

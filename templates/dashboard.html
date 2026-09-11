@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Vault Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="brand-icon">&#128196;</span>
+            <h1>Invoice Vault</h1>
+        </div>
+        <div class="nav-status" id="botStatus">
+            <span class="status-dot"></span>
+            Bot Active
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="header">
+            <h2>Invoice Dashboard</h2>
+            <p class="subtitle">View and manage invoices uploaded via Telegram Bot</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <span class="stat-label">Total Invoices</span>
+                <span class="stat-value" id="totalCount">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">This Month</span>
+                <span class="stat-value" id="monthCount">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Total Value</span>
+                <span class="stat-value" id="totalValue">$0.00</span>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-panel">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Search</label>
+                    <input type="text" id="searchInput" placeholder="Search by vendor or ID...">
+                </div>
+                <div class="filter-group">
+                    <label>Filter Mode</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="filterMode" value="all" checked> All Time
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="filterMode" value="specific"> Specific Date
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="filterMode" value="range"> Date Range
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-row" id="dateFilters" style="display: none;">
+                <div class="filter-group" id="specificDateGroup" style="display: none;">
+                    <label>Date</label>
+                    <input type="date" id="specificDate">
+                </div>
+                <div class="filter-group" id="startDateGroup" style="display: none;">
+                    <label>From</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="filter-group" id="endDateGroup" style="display: none;">
+                    <label>To</label>
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+            <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <table class="invoice-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User ID</th>
+                        <th>Type</th>
+                        <th>Vendor</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceTableBody">
+                    <tr><td colspan="7" class="empty-state">Loading invoices...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <div class="modal-header">
+                <h3 id="modalTitle">Invoice Preview</h3>
+                <span class="modal-meta" id="modalMeta"></span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="loading-spinner">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
