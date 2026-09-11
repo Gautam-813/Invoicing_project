@@ -1,12 +1,11 @@
 import streamlit as st
-import sqlite3
+import psycopg2
 import requests
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-DB_NAME = "invoices.db"
+# Read from Streamlit Secrets (Cloud) or fallback to Environment Variables (Local)
+BOT_TOKEN = st.secrets.get("TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
+DATABASE_URL = st.secrets.get("DATABASE_URL") or os.getenv("DATABASE_URL")
 
 st.set_page_config(page_title="Invoice Vault Dashboard", layout="wide", page_icon="🧾")
 
@@ -14,11 +13,16 @@ st.title("🧾 Invoice Vault Web Dashboard")
 st.write("View and manage invoices uploaded via your Telegram Bot.")
 
 def fetch_invoices():
-    """Fetch all stored invoices from SQLite."""
-    conn = sqlite3.connect(DB_NAME)
+    """Fetch all stored invoices from Supabase PostgreSQL."""
+    if not DATABASE_URL:
+        st.error("DATABASE_URL is missing. Please check your Streamlit secrets.")
+        return []
+    
+    conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, user_id, file_id, file_type, vendor, amount, upload_date FROM invoices ORDER BY upload_date DESC")
+    cursor.execute("SELECT id, user_id, file_id, file_type, vendor, amount, upload_date FROM invoices ORDER BY upload_date DESC;")
     data = cursor.fetchall()
+    cursor.close()
     conn.close()
     return data
 
@@ -30,20 +34,16 @@ def get_telegram_file_url(file_id):
         return f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
     return None
 
-# Fetch data
 invoices = fetch_invoices()
 
 if not invoices:
-    st.info("No invoices found in the database. Upload some files through your Telegram Bot first!")
+    st.info("No invoices found in the database. Upload files through your Telegram Bot first!")
 else:
-    # Sidebar Filters
     st.sidebar.header("Filter & Search")
     search_query = st.sidebar.text_input("Search by ID or Vendor")
 
-    # Display Summary Metric
     st.metric(label="Total Invoices Saved", value=len(invoices))
 
-    # Convert to displayable format
     table_data = []
     for inv in invoices:
         inv_id, user_id, file_id, file_type, vendor, amount, upload_date = inv
@@ -60,7 +60,6 @@ else:
         })
 
     st.subheader("Invoice Records")
-    
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -84,4 +83,4 @@ else:
                     st.success("PDF Document Ready")
                     st.markdown(f"[📥 Download PDF Invoice]({file_url})")
             else:
-                st.error("Failed to fetch file link from Telegram. Check if BOT_TOKEN is valid.")
+                st.error("Failed to fetch file link from Telegram. Check BOT_TOKEN.")
