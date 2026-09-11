@@ -4,10 +4,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Fetch Supabase connection URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable is missing or empty!")
     return psycopg2.connect(DATABASE_URL)
 
 def init_db():
@@ -31,48 +32,3 @@ def init_db():
     cursor.close()
     conn.close()
     print("Supabase PostgreSQL initialized successfully.")
-
-def save_invoice(user_id: int, file_id: str, file_type: str, vendor: str = "Pending Extraction", amount: float = 0.0):
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        INSERT INTO invoices (user_id, file_id, file_type, vendor, amount)
-        VALUES (%s, %s, %s, %s, %s);
-    """, (user_id, file_id, file_type, vendor, amount))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-def get_user_invoices(user_id: int):
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, file_id, file_type, vendor, amount, upload_date 
-        FROM invoices 
-        WHERE user_id = %s
-        ORDER BY upload_date DESC;
-    """, (user_id,))
-    
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return rows
-
-def get_all_invoices():
-    """Fetches all stored invoices across all users for the Streamlit Dashboard."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, user_id, file_id, file_type, vendor, amount, upload_date 
-        FROM invoices 
-        ORDER BY upload_date DESC;
-    """)
-    
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return rows
