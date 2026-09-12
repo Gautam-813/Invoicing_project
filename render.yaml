@@ -9,3 +9,5 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: DEFAULT_CHAT_ID
+        sync: false
